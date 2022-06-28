@@ -1,6 +1,6 @@
 import argparse
 import cv2
-from skimage.metrics import structural_similarity as ssim
+from skimage.metrics import structural_similarity as ssim, mean_squared_error
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -54,27 +54,37 @@ def main():
 # main()
 
 def test():
-    (winW, winH) = (500, 320)
+    start_time = time.time()
+    (winW, winH) = (550, 320)
 
-    image = cv2.cvtColor(cv2.imread("C:/Users/lwk18/PycharmProjects/SlidingWindow/SlidingWindowLocalization/screendata/test.PNG"),cv2.COLOR_BGR2GRAY)
-    white = cv2.cvtColor(cv2.imread("C:/Users/lwk18/PycharmProjects/SlidingWindow/SlidingWindowLocalization/screendata/white.jpg"),cv2.COLOR_BGR2GRAY)
+    image = cv2.imread("/Users/lewiskoplon/PycharmProjects/LocalizeScreen/screendata/test.PNG")
+    image_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    white = cv2.cvtColor(
+        cv2.imread("/Users/lewiskoplon/PycharmProjects/LocalizeScreen/screendata/white.jpg"),
+        cv2.COLOR_BGR2GRAY)
     # resize the images
     white_resized = cv2.resize(white, (winW, winH))
     max_white = 0
     white_coord = [0, 0]
+    mse_max = 1e9
 
-    for (x, y, window) in sliding_window(image, stepSize=32, windowSize=(winW, winH)):
+    for (x, y, window) in sliding_window(image, stepSize=48, windowSize=(winW, winH)):
         # if the window does not meet our desired window size, ignore it
         if window.shape[0] != winH or window.shape[1] != winW:
             continue
 
         # save the x and y that maximizes the ssim between the sliding window and the image we are scanning through
-        crop_img = image[y:y + winH, x:x + winW]
+        crop_img = image_gray[y:y + winH, x:x + winW]
         # red green blue white
-        ssim_value = ssim(crop_img, white_resized)
+        #ssim_value = ssim(crop_img, white_resized)
+        mse_value = mean_squared_error(crop_img, white_resized)
 
-        if ssim_value > max_white:
-            max_white = ssim_value
+        # if ssim_value > max_white:
+        #     max_white = ssim_value
+        #     white_coord = [y, x]
+
+        if mse_value < mse_max:
+            mse_max = mse_value
             white_coord = [y, x]
 
         clone = image.copy()
@@ -83,10 +93,15 @@ def test():
         cv2.waitKey(1)
 
     if max_white > .70:
-        cv2.rectangle(clone, (white_coord[1], white_coord[0]), (white_coord[1] + winW, white_coord[0] + winH), (0, 255, 0), 2)
-
+        cv2.rectangle(clone, (white_coord[1], white_coord[0]), (white_coord[1] + winW, white_coord[0] + winH),
+                      (0, 255, 0), 2)
+    cv2.rectangle(clone, (white_coord[1], white_coord[0]), (white_coord[1] + winW, white_coord[0] + winH),
+                      (0, 255, 0), 2)
 
     cv2.imshow("Window", clone)
+    print(time.time() - start_time, "seconds to complete")
     cv2.waitKey(0)
+
+
 
 test()
