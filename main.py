@@ -100,6 +100,7 @@ def test():
 
     cv2.imshow("Window", clone)
     print(time.time() - start_time, "seconds to complete")
+    print("Associated Error (MSE):", str(mse_max))
     cv2.waitKey(0)
 
 
